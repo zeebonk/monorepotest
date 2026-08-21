@@ -1,0 +1,46 @@
+name: Detect Changed Projects
+on:
+  workflow_call:
+    inputs:
+      marker_file:
+        type: string
+        default: 'build.marker'
+    outputs:
+      projects:
+        value: ${{ jobs.detect.outputs.projects }}
+
+jobs:
+  detect:
+    runs-on: ubuntu-latest
+    outputs:
+      projects: ${{ steps.filter-marker.outputs.projects }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: tj-actions/changed-files@v47
+        id: changed-files
+        with:
+          dir_names: "true"
+          dir_names_max_depth: "1"
+          json: "true"
+      - id: filter-marker
+        env:
+          CHANGED_DIRS: ${{ steps.changed-files.outputs.all_changed_files }}
+          MARKER_FILE: ${{ inputs.marker_file }}
+        run: |
+          # Ensure CHANGED_DIRS is valid JSON before processing
+          if [ -z "$CHANGED_DIRS" ]; then
+            CHANGED_DIRS="[]"
+          fi
+
+          # Unescape JSON string produced by tj-actions/changed-files
+          CHANGED_DIRS=$(echo "$CHANGED_DIRS" | sed 's/\\"/"/g')
+
+          # Build result by filtering directories that contain the marker file
+          RESULT="[]"
+          for dir in $(echo "$CHANGED_DIRS" | jq -r '.[]'); do
+            if [ -n "$dir" ] && [ -f "$dir/$MARKER_FILE" ]; then
+              RESULT=$(echo "$RESULT" | jq -c --arg d "$dir" '. + [$d]')
+            fi
+          done
+
+          echo "projects=$RESULT" >> "$GITHUB_OUTPUT"
