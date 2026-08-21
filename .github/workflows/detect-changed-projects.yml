@@ -27,6 +27,24 @@ jobs:
           CHANGED_DIRS: ${{ steps.changed-files.outputs.all_changed_files }}
           MARKER_FILE: ${{ inputs.marker_file }}
         run: |
+          # Ensure CHANGED_DIRS is valid JSON before processing
+          if [ -z "$CHANGED_DIRS" ]; then
+            CHANGED_DIRS="[]"
+          fi
+
+          # Parse the JSON array, filter out empty strings, and build result
+          RESULT=$(echo "$CHANGED_DIRS" | jq -r '.[]' | while read dir; do
+            if [ -n "$dir" ] && [ -f "$dir/$MARKER_FILE" ]; then
+              echo "$dir"
+            fi
+          done | jq -R -s -c 'split("\n")[:-1]')
+
+          # Handle empty result
+          if [ -z "$RESULT" ] || [ "$RESULT" == "[]" ]; then
+            RESULT="[]"
+          fi
+
+          echo "projects=$RESULT" >> "$GITHUB_OUTPUT"
           FILTERED=$(echo "$CHANGED_DIRS" | jq -c 'map(select(. != "."))')
           RESULT="[]"
           for dir in $(echo "$FILTERED" | jq -r '.[]'); do
