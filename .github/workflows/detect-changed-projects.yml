@@ -32,24 +32,12 @@ jobs:
             CHANGED_DIRS="[]"
           fi
 
-          # Parse the JSON array, filter out empty strings, and build result
-          RESULT=$(echo "$CHANGED_DIRS" | jq -r '.[]' | while read dir; do
-            if [ -n "$dir" ] && [ -f "$dir/$MARKER_FILE" ]; then
-              echo "$dir"
-            fi
-          done | jq -R -s -c 'split("\n")[:-1]')
-
-          # Handle empty result
-          if [ -z "$RESULT" ] || [ "$RESULT" == "[]" ]; then
-            RESULT="[]"
-          fi
-
-          echo "projects=$RESULT" >> "$GITHUB_OUTPUT"
-          FILTERED=$(echo "$CHANGED_DIRS" | jq -c 'map(select(. != "."))')
+          # Build result by filtering directories that contain the marker file
           RESULT="[]"
-          for dir in $(echo "$FILTERED" | jq -r '.[]'); do
-            if [ -f "$dir/$MARKER_FILE" ]; then
+          for dir in $(echo "$CHANGED_DIRS" | jq -r '.[]'); do
+            if [ -n "$dir" ] && [ -f "$dir/$MARKER_FILE" ]; then
               RESULT=$(echo "$RESULT" | jq -c --arg d "$dir" '. + [$d]')
             fi
           done
+
           echo "projects=$RESULT" >> "$GITHUB_OUTPUT"
