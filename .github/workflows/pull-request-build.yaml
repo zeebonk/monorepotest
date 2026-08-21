@@ -1,0 +1,21 @@
+name: Build changed projects
+
+on:
+  pull_request:
+    branches: [main]
+
+jobs:
+  detect-changes:
+    uses: ./.github/workflows/detect-changed-projects.yml
+    with:
+      marker_file: README.md
+
+  build:
+    needs: detect-changes
+    runs-on: ubuntu-latest
+    strategy:
+      matrix:
+        project: ${{ fromJSON(needs.detect-changes.outputs.projects) }}
+    steps:
+      - uses: actions/checkout@v4
+      - run: cd ${{ matrix.project }} && make build
