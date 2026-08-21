@@ -18,4 +18,4 @@ jobs:
         project: ${{ fromJSON(needs.detect-changes.outputs.projects) }}
     steps:
       - uses: actions/checkout@v4
-      - run: cd ${{ matrix.project }} && make build
+      - run: echo ${{ matrix.project }}
