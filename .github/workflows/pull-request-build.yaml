@@ -19,3 +19,31 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - run: echo ${{ matrix.project }}
+
+
+  build-summary:
+    if: always()
+    needs: [detect-changes, build]
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check matrix result
+        run: |
+          echo "Detect changes result: ${{ needs.detect-changes.result }}"
+          echo "Build result: ${{ needs.build.result }}"
+
+          if [ "${{ needs.detect-changes.result }}" != "success" ]; then
+            echo "detect-changes job failed"
+            exit 1
+          fi
+
+          # 'build' job result is:
+          # - "success" if it ran and all matrix legs passed
+          # - "skipped" if the if-condition was false (no projects changed) — treat as OK
+          # - "failure" if any matrix leg failed
+          # - "cancelled" if cancelled
+          if [ "${{ needs.build.result }}" != "success" ] && [ "${{ needs.build.result }}" != "skipped" ]; then
+            echo "One or more matrix builds failed"
+            exit 1
+          fi
+
+          echo "All good"
