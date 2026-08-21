@@ -32,6 +32,9 @@ jobs:
             CHANGED_DIRS="[]"
           fi
 
+          # Unescape JSON string produced by tj-actions/changed-files
+          CHANGED_DIRS=$(echo "$CHANGED_DIRS" | sed 's/\\"/"/g')
+
           # Build result by filtering directories that contain the marker file
           RESULT="[]"
           for dir in $(echo "$CHANGED_DIRS" | jq -r '.[]'); do
