@@ -1,0 +1,37 @@
+name: Build Summary
+
+on:
+  workflow_call:
+    inputs:
+      detect_result:
+        type: string
+        required: true
+      build_result:
+        type: string
+        required: true
+
+jobs:
+  summary:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check matrix result
+        run: |
+          echo "Detect changes result: ${{ inputs.detect_result }}"
+          echo "Build result: ${{ inputs.build_result }}"
+
+          if [ "${{ inputs.detect_result }}" != "success" ]; then
+            echo "detect-changes job failed"
+            exit 1
+          fi
+
+          # 'build' job result is:
+          # - "success" if it ran and all matrix legs passed
+          # - "skipped" if the if-condition was false (no projects changed) — treat as OK
+          # - "failure" if any matrix leg failed
+          # - "cancelled" if cancelled
+          if [ "${{ inputs.build_result }}" != "success" ] && [ "${{ inputs.build_result }}" != "skipped" ]; then
+            echo "One or more matrix builds failed"
+            exit 1
+          fi
+
+          echo "All good"
